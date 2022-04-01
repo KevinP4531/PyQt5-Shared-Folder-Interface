@@ -1,6 +1,6 @@
 import socket
 import sys
-from PyQt5.QtWidgets import (QMainWindow, QLineEdit, QGridLayout, QWidget, QToolTip, QPushButton, QApplication)
+from PyQt5.QtWidgets import (QMainWindow, QLineEdit, QGridLayout, QWidget, QToolTip, QPushButton, QApplication, QFileDialog)
 from PyQt5.QtGui import QFont
 
 
@@ -26,17 +26,31 @@ class Window(QMainWindow):
 
         print(f'Connecting too... {self.host}:{self.port}')
 
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as self.s:
-            try:
-                self.s.connect((self.host, self.port))
-                self.s.sendall(b"Hello, world")
-                data = self.s.recv(1024)
-                print(f'RECV\'D FROM SERVER: {data}')
-            except ConnectionRefusedError:
-                print(f'Connection to {self.host}:{self.port} refused by machine')
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            self.s.connect((self.host, self.port))
+        except ConnectionRefusedError:
+            print(f'Connection to {self.host}:{self.port} refused by machine')
+            
+        self.s.sendall(b"Hello, world")
+        data = self.s.recv(1024)
+        print(f'RECV\'D FROM SERVER: {data}')
+
 
     def upload(self):
-        print("UPLOAD")
+        dlg = QFileDialog()
+        dlg.setFileMode(QFileDialog.AnyFile)
+        filenames = []
+		
+        if dlg.exec_():
+            filenames = dlg.selectedFiles()
+            f = open(filenames[0], 'r')
+            print(f'Opened {f} for uploading!')
+            with f:
+                data = f.read()
+                self.s.sendall(str.encode(data))
+                data = self.s.recv(1024)
+                print(f'RECV\'D FROM SERVER: {data}')
 
     def download(self):
         print("DOWNLOAD")
@@ -84,6 +98,7 @@ class Window(QMainWindow):
         self.grid.addWidget(self.port_edit, 1, 3)
 
         self.grid.addWidget(self.upld_btn, 2, 0)
+
         self.grid.addWidget(self.dnld_btn, 3, 0)
         self.grid.addWidget(self.delt_btn, 4, 0)
         self.grid.addWidget(self.dir_btn, 5, 0)
