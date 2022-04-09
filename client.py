@@ -1,5 +1,7 @@
 import socket
 import sys
+import os
+from tkinter import SEPARATOR
 from PyQt5.QtWidgets import (QMainWindow, QLineEdit, QGridLayout, QWidget, QToolTip, QPushButton, QApplication, QFileDialog)
 from PyQt5.QtGui import QFont
 
@@ -12,6 +14,8 @@ class Window(QMainWindow):
     def __init__(self):
         super().__init__()
         self.initUI()
+        self.SEPARATOR = "<SEPARATOR>"
+        self.BUFFER_SIZE = 4096
     
     def connect(self):
         if self.host_edit.text() == '':
@@ -31,10 +35,6 @@ class Window(QMainWindow):
             self.s.connect((self.host, self.port))
         except ConnectionRefusedError:
             print(f'Connection to {self.host}:{self.port} refused by machine')
-            
-        self.s.sendall(b"Hello, world")
-        data = self.s.recv(1024)
-        print(f'RECV\'D FROM SERVER: {data}')
 
 
     def upload(self):
@@ -44,13 +44,20 @@ class Window(QMainWindow):
 		
         if dlg.exec_():
             filenames = dlg.selectedFiles()
-            f = open(filenames[0], 'r')
-            print(f'Opened {f} for uploading!')
-            with f:
-                data = f.read()
-                self.s.sendall(str.encode(data))
-                data = self.s.recv(1024)
-                print(f'RECV\'D FROM SERVER: {data}')
+            print(f'Opened {filenames[0]} for uploading!')
+            self.s.send(f"{filenames[0]}{self.SEPARATOR}{os.path.getsize(filenames[0])}".encode())
+
+            with open(filenames[0], "rb") as f:
+                tot_sent = 0
+                while True:
+                    bytes_read = f.read(self.BUFFER_SIZE)
+                    tot_sent += len(bytes_read)
+                    if not bytes_read:
+                        break
+                    self.s.sendall(bytes_read)
+                    print(tot_sent)
+                    
+        print("Done Uploading File!")
 
     def download(self):
         print("DOWNLOAD")
