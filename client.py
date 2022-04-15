@@ -38,6 +38,8 @@ class Window(QMainWindow):
 
 
     def upload(self):
+        self.s.send(f"UPLOAD".encode())
+
         dlg = QFileDialog()
         dlg.setFileMode(QFileDialog.AnyFile)
         filenames = []
@@ -66,7 +68,9 @@ class Window(QMainWindow):
         print("DELETE")
     
     def dir(self):
-        print("LIST DIR")
+        self.s.send(f"DIR".encode())
+        data = self.s.recv(self.BUFFER_SIZE).decode()
+        print(data)
 
     def initUI(self):
         QToolTip.setFont(QFont('SansSerif', 10))
