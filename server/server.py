@@ -1,6 +1,5 @@
 import socket
 import os
-from turtle import down
 
 class FileRecord:
     def __init__(self, path, filename, filesize, down_count=0):
@@ -21,7 +20,7 @@ class Directory:
         for _, entry in self.entries.items():
             result += f"{entry}\n"
         return result
-        
+
     def Add(self, entry):
         if entry.name not in self.entries.keys():
             self.entries[entry.name] = entry
