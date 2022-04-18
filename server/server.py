@@ -24,11 +24,15 @@ class Directory:
     def Add(self, entry):
         if entry.name not in self.entries.keys():
             self.entries[entry.name] = entry
+    def Remove(self, key):
+        if key not in self.entries.keys():
+            del self.entries[key]
 
 
 DIR_STRUCT = Directory()
 HOST = "127.0.0.1"
 PORT = 65432
+SERVER_PATH = "./server/"
 
 class Server:
     def __init__(self):
@@ -53,7 +57,7 @@ class Server:
             elif (data == "DOWNLOAD"):
                 print("DOWNLOAD")
             elif (data == "DELETE"):
-                print("DELETE")
+                self.DeleteFile(clientsocket)
             elif (data == "DIR"):
                 self.ListDir(clientsocket)
             else:
@@ -61,6 +65,19 @@ class Server:
             
             return True
     
+    def DeleteFile(self, clientsocket):
+        filename = clientsocket.recv(self.BUFFER_SIZE).decode()
+        print(f"Deleting {filename}")
+        if (os.path.exists(f"{SERVER_PATH}{filename}")):
+            os.remove(f"{SERVER_PATH}{filename}")
+            DIR_STRUCT.Remove(filename)
+        else:
+            print("File doesn't exist!")
+            clientsocket.send("DOESN'T EXIST!".encode())
+            return
+        print("Deletion successful!")
+        clientsocket.send("SUCCESS!".encode())
+
     def ListDir(self, cliensocket):
         cliensocket.send(f"{DIR_STRUCT}".encode())
 
@@ -72,7 +89,7 @@ class Server:
         filesize = int(filesize)
         print(f'{new_entry}')
 
-        with open(filename, 'wb') as f:
+        with open(f"{SERVER_PATH}{filename}", 'wb') as f:
                 sent = 0
                 while True:
                     bytes_read = clientsocket.recv(self.BUFFER_SIZE)

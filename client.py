@@ -1,7 +1,6 @@
 import socket
 import sys
 import os
-from tkinter import SEPARATOR
 from PyQt5.QtWidgets import (QMainWindow, QLineEdit, QGridLayout, QWidget, QToolTip, QPushButton, QApplication, QFileDialog)
 from PyQt5.QtGui import QFont
 
@@ -65,7 +64,18 @@ class Window(QMainWindow):
         print("DOWNLOAD")
 
     def delete(self):
-        print("DELETE")
+        self.s.send(f"DELETE".encode())
+        filename = self.delt_edit.text()
+        if (filename == ''):
+            return
+        
+        print(f'Deleting {filename}...')
+
+        self.s.send(f"{filename}".encode())
+
+        data = self.s.recv(self.BUFFER_SIZE).decode()
+        print(f"SERVER MSG: ")
+
     
     def dir(self):
         self.s.send(f"DIR".encode())
@@ -88,15 +98,18 @@ class Window(QMainWindow):
         self.upld_btn.resize(self.cnct_btn.sizeHint())
         self.upld_btn.clicked.connect(self.upload)
 
+
         self.dnld_btn = QPushButton('DOWNLOAD', self)
         self.dnld_btn.setToolTip('Download specified file from shared folder')
         self.dnld_btn.resize(self.dnld_btn.sizeHint())
         self.dnld_btn.clicked.connect(self.download)
+        self.dnld_edit = QLineEdit()
 
         self.delt_btn = QPushButton('DELETE', self)
         self.delt_btn.setToolTip('Download specified file from shared folder')
         self.delt_btn.resize(self.delt_btn.sizeHint())
         self.delt_btn.clicked.connect(self.delete)
+        self.delt_edit = QLineEdit()
 
         self.dir_btn = QPushButton('DIR', self)
         self.dir_btn.setToolTip('List directory contents')
@@ -111,7 +124,11 @@ class Window(QMainWindow):
         self.grid.addWidget(self.upld_btn, 2, 0)
 
         self.grid.addWidget(self.dnld_btn, 3, 0)
+        self.grid.addWidget(self.dnld_edit, 3, 1)
+
         self.grid.addWidget(self.delt_btn, 4, 0)
+        self.grid.addWidget(self.delt_edit, 4, 1)
+
         self.grid.addWidget(self.dir_btn, 5, 0)
 
         self.central_wid = QWidget(self)
