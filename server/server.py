@@ -6,7 +6,7 @@ class FileRecord:
         self.name = filename
         self.size = filesize
         self.path = path
-        self.down_cnt = down_count
+        self.down_cnt = int(down_count)
     def __str__(self) -> str:
         return f"{self.name}\t{self.size}\t{self.path}\t{self.down_cnt}"
     def __repr__(self) -> str:
@@ -55,7 +55,7 @@ class Server:
             if (data == "UPLOAD"):
                 self.ReceiveFile(clientsocket) 
             elif (data == "DOWNLOAD"):
-                print("DOWNLOAD")
+                self.SendFile(clientsocket)
             elif (data == "DELETE"):
                 self.DeleteFile(clientsocket)
             elif (data == "DIR"):
@@ -65,6 +65,26 @@ class Server:
             
             return True
     
+    def SendFile(self, clientsocket):
+        filename_raw = clientsocket.recv(self.BUFFER_SIZE).decode()
+        filename = f"{SERVER_PATH}{filename_raw}"
+
+        if(os.path.exists(filename)):
+            with open(filename, "rb") as f:
+                clientsocket.send(f"{filename_raw}{self.SEPARATOR}{os.path.getsize(filename)}".encode())
+                tot_sent = 0
+                while True:
+                    bytes_read = f.read(self.BUFFER_SIZE)
+                    tot_sent += len(bytes_read)
+                    if not bytes_read:
+                        break
+                    clientsocket.sendall(bytes_read)
+                    print(tot_sent)
+            DIR_STRUCT.entries[filename_raw].down_cnt += 1
+        else:
+            clientsocket.send("FAILURE".encode())        
+        print("Done Sending File!")
+
     def DeleteFile(self, clientsocket):
         filename = clientsocket.recv(self.BUFFER_SIZE).decode()
         print(f"Deleting {filename}")

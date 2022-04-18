@@ -61,7 +61,31 @@ class Window(QMainWindow):
         print("Done Uploading File!")
 
     def download(self):
-        print("DOWNLOAD")
+        self.s.send(f"DOWNLOAD".encode())
+        filename = self.dnld_edit.text()
+        self.s.send(filename.encode())
+
+        data = self.s.recv(self.BUFFER_SIZE).decode()
+        if (data == "FAILED"):
+            print("File does not exist on server!")
+        else:
+            filename, filesize = data.split(self.SEPARATOR)
+            filename = os.path.basename(filename)
+            filesize = int(filesize)
+            print(f'RECEIVING {filename}')
+
+            with open(filename, 'wb') as f:
+                    sent = 0
+                    while True:
+                        bytes_read = self.s.recv(self.BUFFER_SIZE)
+                        print(bytes_read)
+                        if not bytes_read:
+                            break
+                        f.write(bytes_read)
+                        sent += len(bytes_read)
+                        print(f"{float(sent)/filesize}")
+            
+            print(f"Finished downloading {filename}!")
 
     def delete(self):
         self.s.send(f"DELETE".encode())
