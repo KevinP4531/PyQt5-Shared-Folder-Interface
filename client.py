@@ -1,6 +1,7 @@
 import socket
 import sys
 import os
+import time
 from PyQt5.QtWidgets import (QMainWindow, QLineEdit, QGridLayout, QWidget, QToolTip, QPushButton, QApplication, QFileDialog)
 from PyQt5.QtGui import QFont
 
@@ -74,17 +75,36 @@ class Window(QMainWindow):
             filesize = int(filesize)
             print(f'RECEIVING {filename}')
 
+            seconds = (time.time() * 1000) - 500
+            first_read = time.time()
+            print(seconds)
+            down_data = []
             with open(filename, 'wb') as f:
                     sent = 0
+                    delta_s = 0.0
+                    tot_bytes_read = 0.0
                     while True:
                         bytes_read = self.s.recv(self.BUFFER_SIZE)
-                        print(bytes_read)
                         if not bytes_read:
                             break
+
+                        # Calculate Download Speed
+                        delta_s += abs((time.time() * 1000) - seconds)
+                        seconds = time.time() * 1000
+                        tot_bytes_read += float(len(bytes_read))
+                        if delta_s >= 250.0:
+                            dnld_speed = tot_bytes_read / delta_s
+                            delta_s = 0.0
+                            tot_bytes_read = 0.0
+                            down_data.append(((seconds/1000) - first_read, dnld_speed)) # Record time since start of transfer, download speed
+
                         f.write(bytes_read)
                         sent += len(bytes_read)
                         print(f"{float(sent)/filesize}")
             
+            with open(f"download_data.txt", 'wb') as f:
+                for time_x, speed in down_data:
+                    f.write(f"{time_x}, {speed}\n".encode())
             print(f"Finished downloading {filename}!")
 
     def delete(self):
@@ -105,6 +125,9 @@ class Window(QMainWindow):
         self.s.send(f"DIR".encode())
         data = self.s.recv(self.BUFFER_SIZE).decode()
         print(data)
+
+    def exit(self):
+        self.s.send(f"EXIT".encode())
 
     def initUI(self):
         QToolTip.setFont(QFont('SansSerif', 10))
@@ -139,6 +162,11 @@ class Window(QMainWindow):
         self.dir_btn.setToolTip('List directory contents')
         self.dir_btn.resize(self.dir_btn.sizeHint())
         self.dir_btn.clicked.connect(self.dir)
+
+        self.exit_btn = QPushButton('Exit', self)
+        self.exit_btn.setToolTip('Terminate Connection')
+        self.exit_btn.resize(self.exit_btn.sizeHint())
+        self.exit_btn.clicked.connect(self.exit)
 
         self.grid = QGridLayout()
         self.grid.addWidget(self.cnct_btn, 1, 0)

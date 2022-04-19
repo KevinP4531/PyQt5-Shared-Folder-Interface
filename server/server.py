@@ -1,5 +1,6 @@
 import socket
 import os
+import time
 
 class FileRecord:
     def __init__(self, path, filename, filesize, down_count=0):
@@ -109,17 +110,37 @@ class Server:
         filesize = int(filesize)
         print(f'{new_entry}')
 
+        seconds = (time.time() * 1000) - 500
+        first_read = time.time()
+        print(seconds)
+        down_data = []
         with open(f"{SERVER_PATH}{filename}", 'wb') as f:
                 sent = 0
+                delta_s = 0.0
+                tot_bytes_read = 0.0
                 while True:
                     bytes_read = clientsocket.recv(self.BUFFER_SIZE)
-                    print(bytes_read)
                     if not bytes_read:
                         break
+
+                    # Calculate Download Speed
+                    delta_s += abs((time.time() * 1000) - seconds)
+                    seconds = time.time() * 1000
+                    tot_bytes_read += float(len(bytes_read))
+                    if delta_s >= 250.0:
+                        dnld_speed = tot_bytes_read / delta_s
+                        delta_s = 0.0
+                        tot_bytes_read = 0.0
+                        down_data.append(((seconds/1000) - first_read, dnld_speed)) # Record time since start of transfer, download speed
+
                     f.write(bytes_read)
                     sent += len(bytes_read)
                     print(f"{float(sent)/filesize}")
         
+        with open(f"{SERVER_PATH}download_data.txt", 'wb') as f:
+            for time_x, speed in down_data:
+                f.write(f"{time_x}, {speed}\n".encode())
+
         DIR_STRUCT.Add(new_entry)
         print(f"Finished uploading {filename}!")
 
